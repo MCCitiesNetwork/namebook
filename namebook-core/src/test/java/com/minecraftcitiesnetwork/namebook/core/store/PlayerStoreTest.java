@@ -21,6 +21,7 @@ import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PlayerStoreTest extends AbstractDatabaseTest {
@@ -139,5 +140,51 @@ class PlayerStoreTest extends AbstractDatabaseTest {
         assertTrue(this.store.insertIfAbsent(a, "Steve"));
         assertFalse(this.store.insertIfAbsent(a, "Alex"));
         assertEquals(Optional.of("Steve"), this.store.nameOf(a));
+    }
+
+    @Test
+    void insertIfAbsent_keepsLongestNameIntact() {
+        UUID a = UUID.randomUUID();
+        String name = "." + "a".repeat(31);
+        assertTrue(this.store.insertIfAbsent(a, name));
+        assertEquals(Optional.of(name), this.store.nameOf(a));
+    }
+
+    @Test
+    void insertIfAbsent_rejectsTooLongName() {
+        UUID a = UUID.randomUUID();
+        assertThrows(IllegalArgumentException.class, () -> this.store.insertIfAbsent(a, "a".repeat(33)));
+        assertEquals(Optional.empty(), this.store.nameOf(a));
+    }
+
+    @Test
+    void record_rejectsTooLongName() {
+        UUID a = UUID.randomUUID();
+        assertThrows(IllegalArgumentException.class, () -> this.store.record(a, "a".repeat(33)));
+        assertEquals(Optional.empty(), this.store.nameOf(a));
+    }
+
+    @Test
+    void insertIfAbsent_concurrentSameNameInsertsOnce() throws Exception {
+        for (int round = 0; round < 10; round++) {
+            String name = "y" + round;
+            CountDownLatch start = new CountDownLatch(1);
+            ExecutorService pool = Executors.newFixedThreadPool(2);
+            try {
+                Future<Boolean> fa = pool.submit(() -> {
+                    start.await();
+                    return this.store.insertIfAbsent(UUID.randomUUID(), name);
+                });
+                Future<Boolean> fb = pool.submit(() -> {
+                    start.await();
+                    return this.store.insertIfAbsent(UUID.randomUUID(), name);
+                });
+                start.countDown();
+                assertTrue(fa.get(30, TimeUnit.SECONDS) ^ fb.get(30, TimeUnit.SECONDS));
+            } finally {
+                pool.shutdownNow();
+            }
+            assertEquals(1, rowsNamed(name));
+        }
     }
 }

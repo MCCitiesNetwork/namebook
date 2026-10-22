@@ -26,8 +26,12 @@ public interface PlayerMapper {
             ON DUPLICATE KEY UPDATE name = VALUES(name)""")
     int upsert(@Param("id") UUID id, @Param("name") String name);
 
-    // IGNORE skips a clash on either key, so an existing row is never overwritten.
-    @Insert("INSERT IGNORE INTO namebook_players (player_uuid, name) VALUES (#{id}, #{name})")
+    // Not INSERT IGNORE: that would also turn a too-long name into a silently cut one. A row that
+    // appears between the check and the insert raises a duplicate key, which PlayerStore handles.
+    @Insert("""
+            INSERT INTO namebook_players (player_uuid, name)
+            SELECT #{id}, #{name} FROM DUAL WHERE NOT EXISTS
+              (SELECT 1 FROM namebook_players WHERE player_uuid = #{id} OR name = #{name})""")
     int insertIfAbsent(@Param("id") UUID id, @Param("name") String name);
 
     @Select("SELECT name FROM namebook_players WHERE player_uuid = #{id}")
