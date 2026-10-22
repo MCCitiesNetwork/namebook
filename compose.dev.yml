@@ -5,7 +5,7 @@
 # `./gradlew runServer` brings this up first and points the plugin at it.
 #
 # This is a DEVELOPMENT database. The credentials are deliberately trivial and
-# the port is published to localhost — do not reuse this file for anything
+# port 3307 is published on this machine — do not reuse this file for anything
 # reachable from outside your machine.
 name: namebook-dev
 
@@ -22,8 +22,10 @@ services:
       MARIADB_PASSWORD: namebook
       MARIADB_ROOT_PASSWORD: root
     ports:
-      # Matches the url in the generated run/plugins/Namebook/database.yml.
-      - "3306:3306"
+      # Host port 3307, not 3306, so this can run beside another project's dev
+      # database. Matches devDbUrl in namebook-paper/build.gradle.kts and the url in
+      # the generated run/plugins/Namebook/database.yml.
+      - "3307:3306"
     volumes:
       # Named volume, so data survives a restart.
       # `./gradlew resetDevDb` drops it for a clean schema.

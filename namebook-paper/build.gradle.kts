@@ -26,7 +26,8 @@ dependencies {
 
 val devComposeFile = rootProject.layout.projectDirectory.file("compose.dev.yml").asFile
 val devDbConfigFile = layout.projectDirectory.file("run/plugins/Namebook/database.yml").asFile
-val devDbUrl = "mariadb://localhost:3306/namebook"
+// compose.dev.yml publishes the database on 3307 so it does not clash with one already on 3306.
+val devDbUrl = "mariadb://localhost:3307/namebook"
 val devDbUser = "namebook"
 val devDbPassword = "namebook"
 
