@@ -105,12 +105,21 @@ The API module has no runtime dependencies and is published as
 ## Names
 
 - A Java name matches `^[A-Za-z0-9_]{1,16}$`. A Bedrock (Geyser/Floodgate)
-  name is the Bedrock prefix followed by 1–31 non-space characters; Floodgate
-  writes the player's gamertag with spaces replaced by `_`. Anything else is
+  name is built exactly as Floodgate builds it: the prefix, then the gamertag
+  cut so the whole name is at most 16 characters, with spaces replaced by `_`
+  when Floodgate's `replace-spaces` is on (the default). Gamertags are ASCII
+  letters, digits and spaces, so every valid name is ASCII. Anything else is
   rejected by `uuidOf` (empty result) and never stored.
-- The Bedrock prefix is `bedrock.prefix` (default `.`). When Floodgate is
-  installed, Namebook reads Floodgate's `username-prefix` instead, so the two
-  always agree. An empty prefix is allowed; Bedrock names then look like Java
+- A Bedrock name of exactly 16 characters may have been cut short, so it is
+  never looked up by gamertag remotely: a partial gamertag could match a
+  different Xbox account. Such players are still found through the database
+  and the server cache once they have joined.
+- The Bedrock prefix is `bedrock.prefix` (default `.`) and space handling is
+  `bedrock.replace-spaces` (default true). When Floodgate is installed,
+  Namebook reads Floodgate's `username-prefix` and `replace-spaces` instead,
+  so the two always agree. A prefix made of name characters (letters, digits,
+  `_`) makes Bedrock and Java names ambiguous; Namebook warns about it at
+  startup, as Floodgate itself advises against it. An empty prefix is allowed; Bedrock names then look like Java
   names and are resolved by name the Java way.
 - A Floodgate UUID has its high 64 bits all zero; its low 64 bits are the
   player's Xbox user ID (XUID). Players who linked a Java account join with
@@ -161,9 +170,9 @@ Each lookup tries sources in order and stops at the first answer:
    - Bedrock by UUID: the XUID (the UUID's low 64 bits) is looked up with
      `GET https://playerdb.co/api/player/xbox/{xuid}`; the gamertag in
      `data.player.username` becomes prefix + gamertag with spaces as `_`.
-   - Bedrock by name: the prefix is removed and every `_` deleted (gamertags
-     cannot contain `_`, so each one was a space, and the endpoint does not
-     accept spaces), then `GET https://playerdb.co/api/player/xbox/{gamertag}`;
+   - Bedrock by name (names shorter than 16 characters only): the prefix is
+     removed and every `_` and space deleted (gamertags cannot contain `_`, so
+     each one was a space, and the endpoint does not accept spaces), then `GET https://playerdb.co/api/player/xbox/{gamertag}`;
      the XUID in `data.player.id` becomes the Floodgate UUID.
    - An answer that does not match the request (a different UUID, or a name
      that differs other than in case) counts as unknown.
