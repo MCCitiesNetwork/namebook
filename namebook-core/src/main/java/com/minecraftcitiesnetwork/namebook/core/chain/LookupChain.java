@@ -62,12 +62,12 @@ public final class LookupChain implements Namebook {
     }
 
     @Override
-    public CompletableFuture<Optional<String>> nameOf(@Nullable UUID player) {
+    public @NotNull CompletableFuture<Optional<String>> nameOf(@Nullable UUID player) {
         return this.finish(() -> this.findName(player).thenApply(Resolution::value), Optional.empty());
     }
 
     @Override
-    public CompletableFuture<Optional<UUID>> uuidOf(@Nullable String name) {
+    public @NotNull CompletableFuture<Optional<UUID>> uuidOf(@Nullable String name) {
         return this.finish(() -> this.findUuid(name).thenApply(Resolution::value), Optional.empty());
     }
 
@@ -82,13 +82,13 @@ public final class LookupChain implements Namebook {
     }
 
     @Override
-    public CompletableFuture<Map<UUID, Optional<String>>> namesOf(@Nullable Collection<UUID> players) {
+    public @NotNull CompletableFuture<Map<UUID, Optional<String>>> namesOf(@Nullable Collection<UUID> players) {
         List<UUID> request = players == null ? List.of() : new ArrayList<>(players);
         return this.finish(() -> this.findNames(request), unknownFor(request));
     }
 
     @Override
-    public CompletableFuture<Map<String, Optional<UUID>>> uuidsOf(@Nullable Collection<String> names) {
+    public @NotNull CompletableFuture<Map<String, Optional<UUID>>> uuidsOf(@Nullable Collection<String> names) {
         List<String> request = names == null ? List.of() : new ArrayList<>(names);
         return this.finish(() -> this.findUuids(request), unknownFor(request));
     }

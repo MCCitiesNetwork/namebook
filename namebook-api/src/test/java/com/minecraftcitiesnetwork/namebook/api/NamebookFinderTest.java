@@ -27,4 +27,9 @@ class NamebookFinderTest {
 
         assertTrue(NamebookFinder.find(services).isEmpty());
     }
+
+    @Test
+    void find_nullServices_empty() {
+        assertTrue(NamebookFinder.find(null).isEmpty());
+    }
 }

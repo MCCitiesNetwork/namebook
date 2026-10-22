@@ -2,6 +2,8 @@ package com.minecraftcitiesnetwork.namebook.api;
 
 import java.util.Optional;
 import org.bukkit.plugin.ServicesManager;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Lets a plugin depend on Namebook softly: when Namebook's service is not registered the result
@@ -23,8 +25,14 @@ public final class NamebookFinder {
     private NamebookFinder() {
     }
 
-    /** The registered {@link Namebook} service, or empty when Namebook is not installed. */
-    public static Optional<Namebook> find(ServicesManager services) {
+    /**
+     * The registered {@link Namebook} service, or empty when it is not registered. A null
+     * {@code services} gives an empty result.
+     */
+    public static @NotNull Optional<Namebook> find(@Nullable ServicesManager services) {
+        if (services == null) {
+            return Optional.empty();
+        }
         return Optional.ofNullable(services.load(Namebook.class));
     }
 }

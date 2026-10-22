@@ -429,4 +429,25 @@ class LookupChainTest {
         assertEquals(Optional.of("Newer"), join(this.chain.nameOf(id)));
         assertEquals(new Resolution<>(Optional.of("Newer"), SourceId.CACHE), join(this.chain.resolveName(id)));
     }
+
+    @Test
+    void bulk_nullCollectionOrElement_empty() {
+        UUID id = UUID.randomUUID();
+        this.server.knows(id, "Steve");
+        List<UUID> ids = new ArrayList<>();
+        ids.add(null);
+        ids.add(id);
+        List<String> names = new ArrayList<>();
+        names.add(null);
+        names.add("Steve");
+
+        assertTrue(join(this.chain.namesOf(null)).isEmpty());
+        assertTrue(join(this.chain.uuidsOf(null)).isEmpty());
+        Map<UUID, Optional<String>> byId = join(this.chain.namesOf(ids));
+        assertEquals(Optional.empty(), byId.get(null));
+        assertEquals(Optional.of("Steve"), byId.get(id));
+        Map<String, Optional<UUID>> byName = join(this.chain.uuidsOf(names));
+        assertEquals(Optional.empty(), byName.get(null));
+        assertEquals(Optional.of(id), byName.get("Steve"));
+    }
 }
