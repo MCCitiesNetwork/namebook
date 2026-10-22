@@ -1,0 +1,14 @@
+name: Namebook
+version: "${version}"
+main: com.minecraftcitiesnetwork.namebook.paper.NamebookPlugin
+api-version: "26.3"
+description: One place to look up Minecraft player names and UUIDs, Java and Bedrock.
+authors: [ MCCitiesNetwork ]
+
+permissions:
+  namebook.lookup:
+    description: Look up a player's name or UUID with /namebook lookup.
+    default: op
+  namebook.admin:
+    description: Import the server's user cache and reload Namebook.
+    default: op
