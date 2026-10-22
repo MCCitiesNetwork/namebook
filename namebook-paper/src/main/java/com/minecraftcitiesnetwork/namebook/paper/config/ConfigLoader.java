@@ -21,6 +21,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -80,13 +82,32 @@ public final class ConfigLoader {
                     ConfigurationNode defaults = yamlLoader()
                             .source(() -> new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8)))
                             .build().load();
+                    // mergeFrom treats an empty string as "not set" and overwrites it with the
+                    // default, which would undo a deliberately empty value such as bedrock.prefix.
+                    List<Object[]> emptied = new ArrayList<>();
+                    for (ConfigurationNode leaf : root.childrenMap().values()) {
+                        collectEmptyStrings(leaf, emptied);
+                    }
                     root.mergeFrom(defaults);
+                    for (Object[] path : emptied) {
+                        root.node(path).raw("");
+                    }
                     liveLoader.save(root);
                 }
             }
             return root;
         } catch (IOException ex) {
             throw new ConfigurateException(ex);
+        }
+    }
+
+    private static void collectEmptyStrings(ConfigurationNode node, List<Object[]> out) {
+        if (node.isMap()) {
+            for (ConfigurationNode child : node.childrenMap().values()) {
+                collectEmptyStrings(child, out);
+            }
+        } else if (node.raw() instanceof String text && text.isEmpty()) {
+            out.add(node.path().array());
         }
     }
 
