@@ -26,7 +26,7 @@ cache:
   # The most entries kept. The oldest are dropped first.
   max-entries: 10000
 
-# playerdb.co is asked first when a name is not in the database.
+# playerdb.co is asked when a name is in neither the database nor the server's own user cache.
 playerdb:
   enabled: true
   # How long to wait for an answer before treating the name as unknown.

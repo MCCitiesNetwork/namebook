@@ -54,10 +54,9 @@ public final class NamebookDatabase implements AutoCloseable {
     /**
      * Builds the JDBC URL, pinning the connection's time zone to the JVM's default.
      *
-     * <p>Timestamps written by the JVM are compared in SQL against {@code NOW()}. If the database
-     * server's time zone differs from the JVM's, those two clocks disagree.
-     * {@code connectionTimeZone=LOCAL} plus {@code forceConnectionTimeZoneToSession=true} makes the
-     * driver set the session {@code time_zone} to the JVM default so both agree.
+     * <p>Namebook stores no timestamps today. The pin is kept so that a future time column, read
+     * or written through this pool, means the same instant in Java and in SQL whatever the
+     * database server's own time zone is.
      *
      * <p>An explicit {@code connectionTimeZone} in the configured URL is left untouched.
      */

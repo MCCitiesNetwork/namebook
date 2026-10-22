@@ -12,7 +12,7 @@ name: namebook-dev
 services:
   mariadb:
     # Pinned to the same image the Testcontainers-backed tests use
-    # (namebook-backend AbstractDatabaseTest) so dev and test run one engine.
+    # (namebook-core AbstractDatabaseTest) so dev and test run one engine.
     image: mariadb:11.7
     container_name: namebook-dev-mariadb
     restart: unless-stopped
