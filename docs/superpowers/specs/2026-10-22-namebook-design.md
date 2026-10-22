@@ -104,9 +104,17 @@ The API module has no runtime dependencies and is published as
 
 ## Names
 
-- A Java name matches `^[A-Za-z0-9_]{1,16}$`. A Bedrock name is Floodgate's
-  prefix `.` followed by up to 31 more characters. Anything else is rejected
-  by `uuidOf` (empty result) and never stored.
+- A Java name matches `^[A-Za-z0-9_]{1,16}$`. A Bedrock (Geyser/Floodgate)
+  name is the Bedrock prefix followed by 1–31 non-space characters; Floodgate
+  writes the player's gamertag with spaces replaced by `_`. Anything else is
+  rejected by `uuidOf` (empty result) and never stored.
+- The Bedrock prefix is `bedrock.prefix` (default `.`). When Floodgate is
+  installed, Namebook reads Floodgate's `username-prefix` instead, so the two
+  always agree. An empty prefix is allowed; Bedrock names then look like Java
+  names and are resolved by name the Java way.
+- A Floodgate UUID has its high 64 bits all zero; its low 64 bits are the
+  player's Xbox user ID (XUID). Players who linked a Java account join with
+  their Java UUID and name and are ordinary Java players to Namebook.
 - Names are compared case-insensitively. They are stored and returned with
   the player's own capitalisation.
 - A name belongs to at most one player at a time, as in Minecraft itself.
@@ -146,14 +154,22 @@ Each lookup tries sources in order and stops at the first answer:
 3. **Server user cache.** `Server#getOfflinePlayer(UUID)#getName()` for names,
    `Server#getOfflinePlayerIfCached(String)` for UUIDs. Read only; never
    triggers a web lookup.
-4. **playerdb.co.** `GET https://playerdb.co/api/player/minecraft/{name or uuid}`
-   answers both directions in one format (`data.player.username`,
-   `data.player.id`); `success: false` means unknown. Requests send a
-   `User-Agent` naming Namebook and its version, as playerdb.co asks.
-5. **Mojang.** The official profile endpoints, used when playerdb.co is
-   disabled, unknown, slow or failing.
-
-Both remote sources are skipped for Bedrock names, which neither knows.
+4. **playerdb.co.** Requests send a `User-Agent` naming Namebook and its
+   version, as playerdb.co asks; `success: false` means unknown.
+   - Java: `GET https://playerdb.co/api/player/minecraft/{name or uuid}`
+     (`data.player.username`, `data.player.id`).
+   - Bedrock by UUID: the XUID (the UUID's low 64 bits) is looked up with
+     `GET https://playerdb.co/api/player/xbox/{xuid}`; the gamertag in
+     `data.player.username` becomes prefix + gamertag with spaces as `_`.
+   - Bedrock by name: the prefix is removed and every `_` deleted (gamertags
+     cannot contain `_`, so each one was a space, and the endpoint does not
+     accept spaces), then `GET https://playerdb.co/api/player/xbox/{gamertag}`;
+     the XUID in `data.player.id` becomes the Floodgate UUID.
+   - An answer that does not match the request (a different UUID, or a name
+     that differs other than in case) counts as unknown.
+5. **Mojang.** The official profile endpoints, used for Java players when
+   playerdb.co is disabled, unknown, slow or failing. Never used for Bedrock
+   names or Floodgate UUIDs, which Mojang does not know.
 Each has its own `enabled` (default true), `timeout` (default 3 seconds) and
 `max-per-minute` (default 30); a request over the limit counts as unknown for
 that source and the chain moves on.
@@ -189,7 +205,7 @@ copy is written to `defaults/`, as Pollster does.
 | File | Contents |
 |---|---|
 | `database.yml` | `url` (without `jdbc:`), `username`, `password`. Ships blank; the plugin disables itself with an explanation when `url` is empty. |
-| `settings.yml` | `cache.ttl`, `cache.miss-ttl`, `cache.max-entries`; `playerdb.enabled`, `playerdb.timeout`, `playerdb.max-per-minute`; `mojang.enabled`, `mojang.timeout`, `mojang.max-per-minute`. |
+| `settings.yml` | `bedrock.prefix`; `cache.ttl`, `cache.miss-ttl`, `cache.max-entries`; `playerdb.enabled`, `playerdb.timeout`, `playerdb.max-per-minute`; `mojang.enabled`, `mojang.timeout`, `mojang.max-per-minute`. |
 | `messages.yml` | Command output, MiniMessage. Player-supplied text inserted unparsed. |
 
 ## Several servers
@@ -219,8 +235,11 @@ Pollster repository.
 - `namebook-paper`: config guard tests; the user-cache importer against a
   sample `usercache.json` (adds missing, never overwrites joins); Mojang
   and playerdb.co sources against a local HTTP server (found, unknown,
-  malformed body, timeout, rate limit); playerdb.co is asked before Mojang and
-  Mojang only when playerdb.co gives no answer.
+  malformed body, timeout, rate limit, Bedrock by XUID and by gamertag,
+  mismatched answers); playerdb.co is asked before Mojang, Mojang only when
+  playerdb.co gives no answer, and never for Bedrock. Bedrock name rules with
+  `.`, a custom prefix and an empty prefix; Floodgate UUID ↔ XUID conversion
+  (XUID 2584878536129841 ↔ `00000000-0000-0000-0009-2eeeeeeefd31`).
 - Test names follow `subject_condition`.
 
 ## Repository
