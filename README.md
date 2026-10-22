@@ -110,21 +110,68 @@ completes with an exception: a failure means "unknown". Futures complete on Name
 main thread, so hop back to the main thread before touching Bukkit. Bulk calls return every requested key
 and make at most one database query.
 
-To depend on Namebook softly, find it through the services manager and fall back when it is missing:
+To depend on Namebook softly, declare it in `paper-plugin.yml` as an optional dependency that loads first
+and whose classes your plugin can see:
 
-```java
-import com.minecraftcitiesnetwork.namebook.api.Namebook;
-import com.minecraftcitiesnetwork.namebook.api.NamebookFinder;
-
-Optional<Namebook> namebook = NamebookFinder.find(getServer().getServicesManager());
-
-CompletableFuture<Optional<String>> name = namebook
-        .map(book -> book.nameOf(uuid))
-        .orElseGet(() -> CompletableFuture.completedFuture(
-                Optional.ofNullable(getServer().getOfflinePlayer(uuid).getName())));
+```yaml
+dependencies:
+  server:
+    Namebook:
+      load: BEFORE
+      required: false
+      join-classpath: true
 ```
 
-In `paper-plugin.yml`, declare Namebook as an optional dependency that loads first.
+The API is `compileOnly`, so when Namebook is not installed its classes are missing and touching any of them
+throws `NoClassDefFoundError`. Check that the plugin is present first, keep every use of Namebook in a class
+of its own that is loaded only after that check, and catch `LinkageError` in case the installed version
+does not match:
+
+```java
+// In your plugin class. PlayerNames is your own interface; the fallback uses the server's user cache.
+private PlayerNames playerNames() {
+    if (getServer().getPluginManager().getPlugin("Namebook") != null) {
+        try {
+            PlayerNames names = NamebookNames.find(getServer().getServicesManager());
+            if (names != null) {
+                return names;
+            }
+        } catch (LinkageError e) {
+            getLogger().warning("Namebook is installed but its API could not be loaded: " + e);
+        }
+    }
+    return new ServerCacheNames(getServer());
+}
+```
+
+```java
+// NamebookNames.java: the only class that names Namebook's types.
+import com.minecraftcitiesnetwork.namebook.api.Namebook;
+import com.minecraftcitiesnetwork.namebook.api.NamebookFinder;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import org.bukkit.plugin.ServicesManager;
+
+final class NamebookNames implements PlayerNames {
+
+    private final Namebook namebook;
+
+    private NamebookNames(Namebook namebook) {
+        this.namebook = namebook;
+    }
+
+    /** Null when Namebook is installed but has not registered its service. */
+    static NamebookNames find(ServicesManager services) {
+        return NamebookFinder.find(services).map(NamebookNames::new).orElse(null);
+    }
+
+    @Override
+    public CompletableFuture<Optional<String>> nameOf(UUID player) {
+        return this.namebook.nameOf(player);
+    }
+}
+```
 
 ## Build
 
