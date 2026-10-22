@@ -5,6 +5,15 @@ on:
     branches: [main]
     tags: ['v*']
 
+# Publishing needs only to read the code; the repository credentials come from secrets.
+permissions:
+  contents: read
+
+# Two pushes in quick succession would otherwise race to upload the same snapshot.
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -18,11 +27,12 @@ jobs:
           distribution: temurin
           java-version: 25
       - uses: gradle/actions/setup-gradle@v4
+      # build runs the API's tests first, so a broken API is never published.
       - name: Publish snapshot
         if: github.ref_type == 'branch'
-        run: ./gradlew :namebook-api:publish
+        run: ./gradlew :namebook-api:build :namebook-api:publish
       - name: Publish release
         if: github.ref_type == 'tag'
         run: |
           tag="${GITHUB_REF_NAME}"
-          ./gradlew :namebook-api:publish -PreleaseVersion="${tag#v}"
+          ./gradlew :namebook-api:build :namebook-api:publish -PreleaseVersion="${tag#v}"
