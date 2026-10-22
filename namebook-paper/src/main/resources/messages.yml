@@ -18,6 +18,8 @@ import:
 
 reload:
   done: '<gray>[<gold>Namebook</gold>]</gray> <green>Configuration reloaded.'
+  # <reason> says what went wrong. The previous configuration stays in use.
+  failed: '<gray>[<gold>Namebook</gold>]</gray> <red>Reload failed: <reason>'
 
 errors:
   database-unavailable: '<gray>[<gold>Namebook</gold>]</gray> <red>The database is not reachable right now.'

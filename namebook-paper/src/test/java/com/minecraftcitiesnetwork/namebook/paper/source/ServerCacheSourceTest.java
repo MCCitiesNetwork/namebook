@@ -1,0 +1,60 @@
+package com.minecraftcitiesnetwork.namebook.paper.source;
+
+import com.minecraftcitiesnetwork.namebook.core.source.SourceId;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.Server;
+import org.junit.jupiter.api.Test;
+
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+class ServerCacheSourceTest {
+
+    private static final UUID NOTCH = UUID.fromString("069a79f4-44e9-4726-a5be-fca90e38aaf5");
+
+    @Test
+    void serverSource_readsUserCacheOnly() {
+        Server server = mock(Server.class);
+        OfflinePlayer known = mock(OfflinePlayer.class);
+        when(known.getName()).thenReturn("Notch");
+        when(known.getUniqueId()).thenReturn(NOTCH);
+        when(server.getOfflinePlayer(NOTCH)).thenReturn(known);
+        when(server.getOfflinePlayerIfCached("notch")).thenReturn(known);
+        ServerCacheSource source = new ServerCacheSource(server, Runnable::run);
+
+        assertEquals(SourceId.SERVER, source.id());
+        assertEquals(Optional.of("Notch"), source.nameOf(NOTCH).join());
+        assertEquals(Optional.of(NOTCH), source.uuidOf("notch").join());
+        assertEquals(Optional.empty(), source.uuidOf("Unknown").join());
+        // getOfflinePlayer(String) may go to Mojang over the network; the server source must never call it.
+        verify(server, never()).getOfflinePlayer(anyString());
+    }
+
+    @Test
+    void serverSource_unknownUuid_isEmpty() {
+        Server server = mock(Server.class);
+        OfflinePlayer stranger = mock(OfflinePlayer.class);
+        when(server.getOfflinePlayer(NOTCH)).thenReturn(stranger);
+        ServerCacheSource source = new ServerCacheSource(server, Runnable::run);
+
+        assertEquals(Optional.empty(), source.nameOf(NOTCH).join());
+    }
+
+    @Test
+    void serverSource_serverThrows_isEmpty() {
+        Server server = mock(Server.class);
+        when(server.getOfflinePlayer(NOTCH)).thenThrow(new IllegalStateException("boom"));
+        when(server.getOfflinePlayerIfCached("Notch")).thenThrow(new IllegalStateException("boom"));
+        ServerCacheSource source = new ServerCacheSource(server, Runnable::run);
+
+        assertEquals(Optional.empty(), source.nameOf(NOTCH).join());
+        assertEquals(Optional.empty(), source.uuidOf("Notch").join());
+    }
+}

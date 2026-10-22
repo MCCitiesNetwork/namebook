@@ -30,6 +30,6 @@ class MessagesConfigTest {
             assertFalse(raw.isBlank(), "empty message for " + key);
             checked++;
         }
-        assertTrue(checked == 7);
+        assertTrue(checked == 8);
     }
 }

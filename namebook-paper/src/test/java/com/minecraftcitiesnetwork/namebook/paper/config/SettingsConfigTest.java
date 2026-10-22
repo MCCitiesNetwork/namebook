@@ -1,5 +1,6 @@
 package com.minecraftcitiesnetwork.namebook.paper.config;
 
+import com.minecraftcitiesnetwork.namebook.core.store.DatabaseSettings;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -58,5 +59,11 @@ class SettingsConfigTest {
     void database_bundledIsBlank() throws Exception {
         DatabaseConfig db = ConfigTestSupport.loader(this.dir).load("database.yml", DatabaseConfig.class);
         assertTrue(db.isBlank());
+    }
+
+    @Test
+    void database_toSettingsCopiesValues() {
+        DatabaseSettings settings = new DatabaseConfig("mariadb://db:3306/namebook", "user", "secret").toSettings();
+        assertEquals(new DatabaseSettings("mariadb://db:3306/namebook", "user", "secret"), settings);
     }
 }
