@@ -1,5 +1,6 @@
 package com.minecraftcitiesnetwork.namebook.paper.config;
 
+import com.minecraftcitiesnetwork.namebook.core.store.DatabaseSettings;
 import org.spongepowered.configurate.objectmapping.ConfigSerializable;
 
 /** The contents of {@code database.yml}. Blank means the admin has not configured it yet. */
@@ -12,15 +13,12 @@ public record DatabaseConfig(String url, String username, String password) {
         password = password == null ? "" : password;
     }
 
-    public Connection toSettings() {
-        return new Connection(this.url, this.username, this.password);
+    /** Connection details as plain values, so storage code does not depend on the YAML types. */
+    public DatabaseSettings toSettings() {
+        return new DatabaseSettings(this.url, this.username, this.password);
     }
 
     public boolean isBlank() {
         return this.url.isBlank();
-    }
-
-    /** Connection details as plain values, so storage code does not depend on the YAML types. */
-    public record Connection(String url, String username, String password) {
     }
 }

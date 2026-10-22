@@ -9,6 +9,7 @@ public final class MessageKeys {
     public static final String IMPORT_DONE = "import.done";
     public static final String IMPORT_FAILED = "import.failed";
     public static final String RELOAD_DONE = "reload.done";
+    public static final String RELOAD_FAILED = "reload.failed";
     public static final String ERRORS_DATABASE_UNAVAILABLE = "errors.database-unavailable";
 
     private MessageKeys() {
