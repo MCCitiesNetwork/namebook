@@ -1,6 +1,7 @@
 package com.minecraftcitiesnetwork.namebook.paper.listener;
 
 import com.minecraftcitiesnetwork.namebook.core.chain.LookupChain;
+import com.minecraftcitiesnetwork.namebook.core.name.NameRules;
 import com.minecraftcitiesnetwork.namebook.core.store.PlayerStore;
 import net.kyori.adventure.text.Component;
 import org.apache.ibatis.exceptions.PersistenceException;
@@ -39,13 +40,15 @@ class JoinRecorderTest {
     private final PlayerStore store = mock(PlayerStore.class);
     private final LookupChain chain = mock(LookupChain.class);
     private final MutableClock clock = new MutableClock();
+    private final NameRules rules = new NameRules(".", true);
     private final List<LogRecord> warnings = new ArrayList<>();
+    private final List<LogRecord> fine = new ArrayList<>();
     private final Logger log = capturingLogger();
 
     @Test
     void join_updatesCacheBeforeDatabase() {
         List<Runnable> queued = new ArrayList<>();
-        JoinRecorder recorder = new JoinRecorder(this.store, this.chain, queued::add, this.clock, this.log);
+        JoinRecorder recorder = new JoinRecorder(this.store, this.chain, this.rules, queued::add, this.clock, this.log);
 
         recorder.onJoin(joinOf(player(ALEX, "Alex")));
 
@@ -63,7 +66,7 @@ class JoinRecorderTest {
     @Test
     void join_databaseDown_logsOncePerMinute() {
         doThrow(new PersistenceException("connection refused")).when(this.store).record(any(), any());
-        JoinRecorder recorder = new JoinRecorder(this.store, this.chain, Runnable::run, this.clock, this.log);
+        JoinRecorder recorder = new JoinRecorder(this.store, this.chain, this.rules, Runnable::run, this.clock, this.log);
         Player alex = player(ALEX, "Alex");
         Player steve = player(STEVE, "Steve");
 
@@ -87,7 +90,7 @@ class JoinRecorderTest {
 
     @Test
     void join_executorRejects_doesNotThrow() {
-        JoinRecorder recorder = new JoinRecorder(this.store, this.chain, task -> {
+        JoinRecorder recorder = new JoinRecorder(this.store, this.chain, this.rules, task -> {
             throw new java.util.concurrent.RejectedExecutionException("shutting down");
         }, this.clock, this.log);
 
@@ -99,7 +102,7 @@ class JoinRecorderTest {
 
     @Test
     void recordOnline_recordsEveryone() {
-        JoinRecorder recorder = new JoinRecorder(this.store, this.chain, Runnable::run, this.clock, this.log);
+        JoinRecorder recorder = new JoinRecorder(this.store, this.chain, this.rules, Runnable::run, this.clock, this.log);
 
         recorder.recordOnline(List.of(player(ALEX, "Alex"), player(STEVE, "Steve")));
 
@@ -107,6 +110,18 @@ class JoinRecorderTest {
         verify(this.chain).recordLocally(STEVE, "Steve");
         verify(this.store).record(ALEX, "Alex");
         verify(this.store).record(STEVE, "Steve");
+    }
+
+    @Test
+    void join_invalidName_skippedWithOneFineLog() {
+        JoinRecorder recorder = new JoinRecorder(this.store, this.chain, this.rules, Runnable::run, this.clock, this.log);
+
+        recorder.onJoin(joinOf(player(ALEX, ".José")));
+
+        verifyNoInteractions(this.chain);
+        verifyNoInteractions(this.store);
+        assertEquals(1, this.fine.size());
+        assertEquals(0, this.warnings.size());
     }
 
     private static Player player(UUID id, String name) {
@@ -123,11 +138,14 @@ class JoinRecorderTest {
     private Logger capturingLogger() {
         Logger logger = Logger.getAnonymousLogger();
         logger.setUseParentHandlers(false);
+        logger.setLevel(Level.ALL);
         logger.addHandler(new Handler() {
             @Override
             public void publish(LogRecord record) {
                 if (record.getLevel().intValue() >= Level.WARNING.intValue()) {
                     JoinRecorderTest.this.warnings.add(record);
+                } else if (record.getLevel().equals(Level.FINE)) {
+                    JoinRecorderTest.this.fine.add(record);
                 }
             }
 

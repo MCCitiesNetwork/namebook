@@ -1,6 +1,7 @@
 package com.minecraftcitiesnetwork.namebook.paper.listener;
 
 import com.minecraftcitiesnetwork.namebook.core.chain.LookupChain;
+import com.minecraftcitiesnetwork.namebook.core.name.NameRules;
 import com.minecraftcitiesnetwork.namebook.core.store.PlayerStore;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -25,6 +26,10 @@ import java.util.logging.Logger;
  * Records every player's UUID and current name when they join. The cache is updated on the main
  * thread straight away, so lookups on this server are right at once; the database write follows
  * on the database executor. A failed write never affects the join.
+ *
+ * <p>A name that fits neither the Java nor the Bedrock form is not recorded: it could never be
+ * looked up by name, and two such names can collide under the database's case-insensitive collation
+ * (for example a Unicode gamertag, or a Floodgate prefix that differs from Namebook's).
  */
 public final class JoinRecorder implements Listener {
 
@@ -33,15 +38,17 @@ public final class JoinRecorder implements Listener {
 
     private final PlayerStore store;
     private final LookupChain chain;
+    private final NameRules rules;
     private final Executor database;
     private final Clock clock;
     private final Logger log;
     private final Map<UUID, Instant> lastWarning = new ConcurrentHashMap<>();
 
-    public JoinRecorder(@NotNull PlayerStore store, @NotNull LookupChain chain, @NotNull Executor database,
-                        @NotNull Clock clock, @NotNull Logger log) {
+    public JoinRecorder(@NotNull PlayerStore store, @NotNull LookupChain chain, @NotNull NameRules rules,
+                        @NotNull Executor database, @NotNull Clock clock, @NotNull Logger log) {
         this.store = store;
         this.chain = chain;
+        this.rules = rules;
         this.database = database;
         this.clock = clock;
         this.log = log;
@@ -63,6 +70,10 @@ public final class JoinRecorder implements Listener {
     private void record(Player player) {
         UUID id = player.getUniqueId();
         String name = player.getName();
+        if (!this.rules.isValid(name)) {
+            this.log.fine("Not recording " + name + " (" + id + "): not a valid Java or Bedrock name");
+            return;
+        }
         this.chain.recordLocally(id, name);
         try {
             this.database.execute(() -> {

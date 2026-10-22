@@ -158,7 +158,7 @@ public final class NamebookPlugin extends JavaPlugin {
                 fallbacks, networkExecutor, getLogger());
         getServer().getServicesManager().register(Namebook.class, chain, this, ServicePriority.Normal);
 
-        JoinRecorder recorder = new JoinRecorder(store, chain, databaseExecutor, clock, getLogger());
+        JoinRecorder recorder = new JoinRecorder(store, chain, rules, databaseExecutor, clock, getLogger());
         getServer().getPluginManager().registerEvents(recorder, this);
 
         PaperCommandManager<Source> commands = PaperCommandManager
