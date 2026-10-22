@@ -30,7 +30,8 @@ import java.util.regex.Pattern;
 /**
  * Loads the plugin's YAML files. A missing live file is copied from the bundled resource, the
  * bundled defaults are merged underneath whatever the admin wrote (so new keys appear after an
- * upgrade), and a pristine, commented copy is refreshed under {@code defaults/}.
+ * upgrade), and a pristine, commented copy is refreshed under {@code defaults/}. The live file is
+ * rewritten only when keys were added, because the rewrite loses its comments.
  */
 public final class ConfigLoader {
 
@@ -88,17 +89,37 @@ public final class ConfigLoader {
                     for (ConfigurationNode leaf : root.childrenMap().values()) {
                         collectEmptyStrings(leaf, emptied);
                     }
+                    boolean missingKeys = hasMissingKeys(defaults, root);
                     root.mergeFrom(defaults);
                     for (Object[] path : emptied) {
                         root.node(path).raw("");
                     }
-                    liveLoader.save(root);
+                    // Configurate drops comments when it reads YAML, so saving rewrites the
+                    // admin's file without them. Only do that when there are keys to add.
+                    if (missingKeys) {
+                        this.log.info("Added missing keys to " + fileName + "; its comments are kept in defaults/.");
+                        liveLoader.save(root);
+                    }
                 }
             }
             return root;
         } catch (IOException ex) {
             throw new ConfigurateException(ex);
         }
+    }
+
+    /** Whether {@code defaults} has a key, at any depth, that {@code live} does not. */
+    private static boolean hasMissingKeys(ConfigurationNode defaults, ConfigurationNode live) {
+        for (var entry : defaults.childrenMap().entrySet()) {
+            ConfigurationNode liveChild = live.node(entry.getKey());
+            if (liveChild.virtual()) {
+                return true;
+            }
+            if (entry.getValue().isMap() && liveChild.isMap() && hasMissingKeys(entry.getValue(), liveChild)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void collectEmptyStrings(ConfigurationNode node, List<Object[]> out) {

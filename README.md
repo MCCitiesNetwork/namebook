@@ -52,7 +52,8 @@ row is removed, because that player has since renamed.
 
 ## Config files
 
-All files are in `plugins/Namebook/`. A reference copy of each default is written to `defaults/`.
+All files are in `plugins/Namebook/`. A reference copy of each default is written to `defaults/`. A file is
+rewritten only when an upgrade adds keys to it; the rewrite drops its comments, which `defaults/` keeps.
 
 - `database.yml`: `url` (without the `jdbc:` prefix, for example `mariadb://localhost:3306/namebook`),
   `username` and `password`. It ships blank.

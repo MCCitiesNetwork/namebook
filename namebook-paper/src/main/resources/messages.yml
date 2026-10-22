@@ -2,7 +2,8 @@
 #
 # Placeholders such as <query>, <answer> and <source> are filled in by the plugin; keep them
 # where they are. Keys that are missing from this file are added back with their default text
-# when the plugin loads.
+# when the plugin loads. Adding them rewrites this file without its comments; a commented copy is
+# always kept in defaults/default-messages.yml.
 
 lookup:
   # <query> is what was asked, <answer> the name or UUID found, <source> where it came from.

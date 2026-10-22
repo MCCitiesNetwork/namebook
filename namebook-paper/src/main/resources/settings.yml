@@ -4,8 +4,9 @@
 # d (days), w (weeks). Units can be combined, for example 1h30m.
 # A value that cannot be read is reported in the server log and replaced by its default.
 #
-# Missing keys are added back, with their default value, each time the plugin loads. A pristine
-# copy of this file is kept in defaults/default-settings.yml for comparison.
+# Missing keys are added back, with their default value, each time the plugin loads. Adding them
+# rewrites this file without its comments; a pristine, commented copy is always kept in
+# defaults/default-settings.yml.
 
 # Bedrock players join through Floodgate with a prefix in front of their name. When Floodgate
 # is installed, its own username-prefix and replace-spaces are used instead of these two.
