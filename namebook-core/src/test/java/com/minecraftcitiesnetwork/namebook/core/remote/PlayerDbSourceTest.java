@@ -80,6 +80,19 @@ class PlayerDbSourceTest {
     }
 
     @Test
+    void bedrock_sixteenCharacterName_makesNoRequest() {
+        this.server.reply(200, found("ABCDEFGHIJKLMNOP", "2584878536129841"));
+        assertEquals(Optional.empty(), this.source().uuidOf(".ABCDEFGHIJKLMNO").join());
+        assertTrue(this.server.paths.isEmpty());
+    }
+
+    @Test
+    void bedrock_byFloodgateUuid_cutsLongGamertag() {
+        this.server.reply(200, found("ABCDEFGHIJ KLMNOP", "2584878536129841"));
+        assertEquals(Optional.of(".ABCDEFGHIJ_KLMN"), this.source().nameOf(NELSON).join());
+    }
+
+    @Test
     void bedrock_mismatchIsUnknown() {
         this.server.reply(200, found("Someone Else", "2584878536129841"));
         assertEquals(Optional.empty(), this.source().uuidOf(".Major_Nelson").join());

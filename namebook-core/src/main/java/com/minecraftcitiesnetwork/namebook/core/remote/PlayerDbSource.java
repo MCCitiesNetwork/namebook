@@ -42,7 +42,7 @@ public final class PlayerDbSource implements NameSource {
     public CompletableFuture<Optional<String>> nameOf(UUID id) {
         boolean floodgate = NameRules.isFloodgate(id);
         String path = floodgate ? "/api/player/xbox/" : "/api/player/minecraft/";
-        String segment = floodgate ? Long.toString(NameRules.xuid(id)) : id.toString();
+        String segment = floodgate ? Long.toUnsignedString(NameRules.xuid(id)) : id.toString();
         return this.fetch(path, segment).thenApply(player -> {
             String username = HttpJson.text(player, "username");
             if (username == null) {
@@ -50,7 +50,7 @@ public final class PlayerDbSource implements NameSource {
             }
             if (floodgate) {
                 String answerId = HttpJson.text(player, "id");
-                if (!Long.toString(NameRules.xuid(id)).equals(answerId)) {
+                if (!Long.toUnsignedString(NameRules.xuid(id)).equals(answerId)) {
                     return Optional.<String>empty();
                 }
                 return Optional.of(this.rules.bedrockName(username));
@@ -65,6 +65,10 @@ public final class PlayerDbSource implements NameSource {
             return CompletableFuture.completedFuture(Optional.empty());
         }
         if (this.rules.isBedrock(name)) {
+            // A cut-down gamertag could belong to a different, shorter Xbox account.
+            if (this.rules.mayBeTruncated(name)) {
+                return CompletableFuture.completedFuture(Optional.empty());
+            }
             String query = this.rules.gamertagQuery(name);
             return this.fetch("/api/player/xbox/", query).thenApply(player -> {
                 String username = HttpJson.text(player, "username");
@@ -78,7 +82,7 @@ public final class PlayerDbSource implements NameSource {
                     return Optional.<UUID>empty();
                 }
                 try {
-                    return Optional.of(NameRules.floodgateUuid(Long.parseLong(xuidText)));
+                    return Optional.of(NameRules.floodgateUuid(Long.parseUnsignedLong(xuidText)));
                 } catch (NumberFormatException exception) {
                     return Optional.<UUID>empty();
                 }
