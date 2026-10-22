@@ -52,21 +52,34 @@ public final class NamebookDatabase implements AutoCloseable {
     }
 
     /**
-     * Builds the JDBC URL, pinning the connection's time zone to the JVM's default.
+     * Builds the JDBC URL, adding the settings below unless the configured URL already sets them.
      *
-     * <p>Namebook stores no timestamps today. The pin is kept so that a future time column, read
-     * or written through this pool, means the same instant in Java and in SQL whatever the
-     * database server's own time zone is.
+     * <p>{@code connectTimeout} and {@code socketTimeout}: by default MariaDB waits 30 seconds to
+     * connect and forever on a read. A database host that vanishes would then hold pool threads on a
+     * dead socket, and lookups would never fall through to the other sources.
      *
-     * <p>An explicit {@code connectionTimeZone} in the configured URL is left untouched.
+     * <p>{@code connectionTimeZone}: Namebook stores no timestamps today. The pin is kept so that a
+     * future time column means the same instant in Java and in SQL whatever the database server's
+     * own time zone is.
      */
-    private static @NotNull String jdbcUrl(@NotNull DatabaseSettings settings) {
-        String url = "jdbc:" + settings.url();
-        if (url.contains("connectionTimeZone=")) {
-            return url;
+    static @NotNull String jdbcUrl(@NotNull DatabaseSettings settings) {
+        StringBuilder url = new StringBuilder("jdbc:").append(settings.url());
+        appendUnlessSet(url, "connectionTimeZone", "connectionTimeZone=LOCAL&forceConnectionTimeZoneToSession=true");
+        appendUnlessSet(url, "connectTimeout", "connectTimeout=5000");
+        appendUnlessSet(url, "socketTimeout", "socketTimeout=10000");
+        return url.toString();
+    }
+
+    private static void appendUnlessSet(StringBuilder url, String parameter, String setting) {
+        int query = url.indexOf("?");
+        if (query >= 0) {
+            for (String pair : url.substring(query + 1).split("&")) {
+                if (pair.startsWith(parameter + "=")) {
+                    return;
+                }
+            }
         }
-        String separator = url.contains("?") ? "&" : "?";
-        return url + separator + "connectionTimeZone=LOCAL&forceConnectionTimeZoneToSession=true";
+        url.append(query >= 0 ? '&' : '?').append(setting);
     }
 
     private static @NotNull SqlSessionFactory buildSessionFactory(@NotNull DataSource dataSource) {
