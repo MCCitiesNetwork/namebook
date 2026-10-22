@@ -41,14 +41,15 @@ public final class NamebookDatabase implements AutoCloseable {
         dataSource.setPoolPingEnabled(true);
         dataSource.setPoolPingQuery("SELECT 1");
         dataSource.setPoolPingConnectionsNotUsedFor(600000);
+        // Everything after the pool exists is inside the try, so no failure leaves it open.
         try {
             new NamebookMigrator().migrate(dataSource, NamebookMigrator.BASE_DIR, NamebookMigrator.STEPS,
                     NamebookDatabase.class.getClassLoader(), logger);
+            return new NamebookDatabase(dataSource, buildSessionFactory(dataSource));
         } catch (SQLException | RuntimeException ex) {
             dataSource.forceCloseAll();
             throw ex;
         }
-        return new NamebookDatabase(dataSource, buildSessionFactory(dataSource));
     }
 
     /**
