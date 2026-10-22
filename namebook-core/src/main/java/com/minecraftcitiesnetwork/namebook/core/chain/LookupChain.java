@@ -58,7 +58,7 @@ public final class LookupChain implements Namebook {
 
     /** Caches a name this server has just seen, so lookups here are right before the database write lands. */
     public void recordLocally(@NotNull UUID id, @NotNull String name) {
-        this.cache.put(id, name);
+        this.cache.putJoined(id, name);
     }
 
     @Override
@@ -97,12 +97,13 @@ public final class LookupChain implements Namebook {
         if (id == null) {
             return CompletableFuture.completedFuture(Resolution.unknown());
         }
+        long since = this.cache.stamp();
         Optional<Optional<String>> cached = this.cache.nameOf(id);
         if (cached.isPresent()) {
             return CompletableFuture.completedFuture(fromCache(cached.get()));
         }
         return this.ask(this.sources, 0, source -> source.nameOf(id)).thenApply(resolution -> {
-            this.rememberName(id, resolution.value());
+            this.rememberName(id, resolution.value(), since);
             return resolution;
         });
     }
@@ -111,17 +112,19 @@ public final class LookupChain implements Namebook {
         if (!this.rules.isValid(name)) {
             return CompletableFuture.completedFuture(Resolution.unknown());
         }
+        long since = this.cache.stamp();
         Optional<Optional<UUID>> cached = this.cache.uuidOf(name);
         if (cached.isPresent()) {
             return CompletableFuture.completedFuture(fromCache(cached.get()));
         }
         return this.ask(this.sources, 0, source -> source.uuidOf(name)).thenApply(resolution -> {
-            this.rememberUuid(name, resolution.value());
+            this.rememberUuid(name, resolution.value(), since);
             return resolution;
         });
     }
 
     private CompletableFuture<Map<UUID, Optional<String>>> findNames(List<UUID> request) {
+        long since = this.cache.stamp();
         Map<UUID, Optional<String>> answers = new ConcurrentHashMap<>();
         List<UUID> pending = new ArrayList<>();
         for (UUID id : new LinkedHashSet<>(request)) {
@@ -144,12 +147,12 @@ public final class LookupChain implements Namebook {
                     for (UUID id : pending) {
                         String name = stored.get(id);
                         if (name != null) {
-                            this.cache.put(id, name);
+                            this.cache.put(id, name, since);
                             answers.put(id, Optional.of(name));
                             continue;
                         }
                         remote.add(this.ask(this.fallbacks, 0, source -> source.nameOf(id)).thenAccept(resolution -> {
-                            this.rememberName(id, resolution.value());
+                            this.rememberName(id, resolution.value(), since);
                             answers.put(id, resolution.value());
                         }));
                     }
@@ -160,6 +163,7 @@ public final class LookupChain implements Namebook {
 
     private CompletableFuture<Map<String, Optional<UUID>>> findUuids(List<String> request) {
         // Keyed by NameRules.key so "Steve" and "STEVE" are looked up once; the first spelling is the one asked.
+        long since = this.cache.stamp();
         Map<String, Optional<UUID>> answers = new ConcurrentHashMap<>();
         Map<String, String> pending = new LinkedHashMap<>();
         for (String name : request) {
@@ -190,12 +194,12 @@ public final class LookupChain implements Namebook {
                         String name = entry.getValue();
                         UUID id = stored.get(key);
                         if (id != null) {
-                            this.rememberUuid(name, Optional.of(id));
+                            this.rememberUuid(name, Optional.of(id), since);
                             answers.put(key, Optional.of(id));
                             continue;
                         }
                         remote.add(this.ask(this.fallbacks, 0, source -> source.uuidOf(name)).thenAccept(resolution -> {
-                            this.rememberUuid(name, resolution.value());
+                            this.rememberUuid(name, resolution.value(), since);
                             answers.put(key, resolution.value());
                         }));
                     }
@@ -266,12 +270,14 @@ public final class LookupChain implements Namebook {
         }
     }
 
-    private void rememberName(UUID id, Optional<String> name) {
-        name.ifPresentOrElse(found -> this.cache.put(id, found), () -> this.cache.putMissingName(id));
+    /** {@code since} is the cache stamp from when the lookup began, so a join written meanwhile wins. */
+    private void rememberName(UUID id, Optional<String> name, long since) {
+        name.ifPresentOrElse(found -> this.cache.put(id, found, since), () -> this.cache.putMissingName(id, since));
     }
 
-    private void rememberUuid(String name, Optional<UUID> id) {
-        id.ifPresentOrElse(found -> this.cache.putUuid(name, found), () -> this.cache.putMissingUuid(name));
+    private void rememberUuid(String name, Optional<UUID> id, long since) {
+        id.ifPresentOrElse(found -> this.cache.putUuid(name, found, since),
+                () -> this.cache.putMissingUuid(name, since));
     }
 
     private static <V> Resolution<V> fromCache(Optional<V> cached) {

@@ -90,4 +90,46 @@ class NameCacheTest {
         assertTrue(this.cache.nameOf(other).isEmpty());
         assertEquals(Optional.of(Optional.of(other)), this.cache.uuidOf("Alex"));
     }
+
+    @Test
+    void putJoined_winsOverLookupStartedEarlier() {
+        UUID a = UUID.randomUUID();
+        UUID b = UUID.randomUUID();
+        long since = this.cache.stamp();
+        this.cache.putJoined(a, "New");
+
+        this.cache.put(a, "Old", since);
+        this.cache.putUuid("Old", a, since);
+        this.cache.putMissingName(a, since);
+        this.cache.put(b, "new", since);
+        this.cache.putMissingUuid("New", since);
+
+        assertEquals(Optional.of(Optional.of("New")), this.cache.nameOf(a));
+        assertEquals(Optional.of(Optional.of(a)), this.cache.uuidOf("new"));
+        assertTrue(this.cache.uuidOf("old").isEmpty());
+        assertTrue(this.cache.nameOf(b).isEmpty());
+    }
+
+    @Test
+    void putJoined_lookupStartedLaterApplies() {
+        UUID a = UUID.randomUUID();
+        this.cache.putJoined(a, "New");
+        long since = this.cache.stamp();
+
+        this.cache.put(a, "Newer", since);
+
+        assertEquals(Optional.of(Optional.of("Newer")), this.cache.nameOf(a));
+    }
+
+    @Test
+    void putJoined_expiredJoinNoLongerBlocks() {
+        UUID a = UUID.randomUUID();
+        long since = this.cache.stamp();
+        this.cache.putJoined(a, "New");
+        this.clock.advance(Duration.ofMinutes(11));
+
+        this.cache.put(a, "Old", since);
+
+        assertEquals(Optional.of(Optional.of("Old")), this.cache.nameOf(a));
+    }
 }

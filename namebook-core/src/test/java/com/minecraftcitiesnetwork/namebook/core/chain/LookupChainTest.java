@@ -51,6 +51,7 @@ class LookupChainTest {
         private final Map<String, UUID> uuids = new HashMap<>();
         private final AtomicInteger calls = new AtomicInteger();
         private boolean throwing;
+        private CompletableFuture<Void> gate = CompletableFuture.completedFuture(null);
 
         FakeSource(SourceId id, List<SourceId> callLog) {
             this.id = id;
@@ -60,6 +61,12 @@ class LookupChainTest {
         FakeSource knows(UUID id, String name) {
             this.names.put(id, name);
             this.uuids.put(NameRules.key(name), id);
+            return this;
+        }
+
+        /** Holds every answer back until {@code gate} completes, to order an answer after a join. */
+        FakeSource heldUntil(CompletableFuture<Void> gate) {
+            this.gate = gate;
             return this;
         }
 
@@ -82,7 +89,7 @@ class LookupChainTest {
             if (this.throwing) {
                 throw new IllegalStateException("boom");
             }
-            return CompletableFuture.completedFuture(Optional.ofNullable(this.names.get(id)));
+            return this.gate.thenApply(done -> Optional.ofNullable(this.names.get(id)));
         }
 
         @Override
@@ -94,7 +101,7 @@ class LookupChainTest {
             if (this.throwing) {
                 return CompletableFuture.failedFuture(new IllegalStateException("boom"));
             }
-            return CompletableFuture.completedFuture(Optional.ofNullable(this.uuids.get(NameRules.key(name))));
+            return this.gate.thenApply(done -> Optional.ofNullable(this.uuids.get(NameRules.key(name))));
         }
     }
 
@@ -349,5 +356,77 @@ class LookupChainTest {
         // The lookup cached no name, so the database is asked and its spelling wins.
         assertEquals(Optional.of("Steve"), join(this.chain.nameOf(id)));
         verify(this.store).nameOf(id);
+    }
+
+    @Test
+    void nameLookupStartedBeforeJoin_doesNotReplaceJoinedName() {
+        UUID id = UUID.randomUUID();
+        CompletableFuture<Void> gate = new CompletableFuture<>();
+        this.server.knows(id, "Old").heldUntil(gate);
+
+        CompletableFuture<Optional<String>> lookup = this.chain.nameOf(id);
+        this.chain.recordLocally(id, "New");
+        gate.complete(null);
+        join(lookup);
+
+        assertEquals(new Resolution<>(Optional.of("New"), SourceId.CACHE), join(this.chain.resolveName(id)));
+        assertEquals(new Resolution<>(Optional.of(id), SourceId.CACHE), join(this.chain.resolveUuid("new")));
+    }
+
+    @Test
+    void missStartedBeforeJoin_doesNotReplaceJoinedName() {
+        UUID id = UUID.randomUUID();
+        CompletableFuture<Void> gate = new CompletableFuture<>();
+        this.server.heldUntil(gate);
+
+        CompletableFuture<Optional<String>> lookup = this.chain.nameOf(id);
+        CompletableFuture<Optional<UUID>> byName = this.chain.uuidOf("New");
+        this.chain.recordLocally(id, "New");
+        gate.complete(null);
+        join(lookup);
+        join(byName);
+
+        assertEquals(new Resolution<>(Optional.of("New"), SourceId.CACHE), join(this.chain.resolveName(id)));
+        assertEquals(new Resolution<>(Optional.of(id), SourceId.CACHE), join(this.chain.resolveUuid("new")));
+    }
+
+    @Test
+    void uuidLookupStartedBeforeJoin_doesNotCacheOldName() {
+        UUID id = UUID.randomUUID();
+        CompletableFuture<Void> gate = new CompletableFuture<>();
+        this.server.knows(id, "Old").heldUntil(gate);
+
+        CompletableFuture<Optional<UUID>> lookup = this.chain.uuidOf("Old");
+        this.chain.recordLocally(id, "New");
+        gate.complete(null);
+        join(lookup);
+
+        assertEquals(SourceId.SERVER, join(this.chain.resolveUuid("old")).source());
+        assertEquals(new Resolution<>(Optional.of("New"), SourceId.CACHE), join(this.chain.resolveName(id)));
+    }
+
+    @Test
+    void bulkLookupStartedBeforeJoin_doesNotReplaceJoinedName() {
+        UUID id = UUID.randomUUID();
+        CompletableFuture<Void> gate = new CompletableFuture<>();
+        this.server.knows(id, "Old").heldUntil(gate);
+
+        CompletableFuture<Map<UUID, Optional<String>>> lookup = this.chain.namesOf(List.of(id));
+        this.chain.recordLocally(id, "New");
+        gate.complete(null);
+        join(lookup);
+
+        assertEquals(new Resolution<>(Optional.of("New"), SourceId.CACHE), join(this.chain.resolveName(id)));
+    }
+
+    @Test
+    void lookupStartedAfterJoin_stillCaches() {
+        UUID id = UUID.randomUUID();
+        this.chain.recordLocally(id, "New");
+        this.cache.clear();
+        this.server.knows(id, "Newer");
+
+        assertEquals(Optional.of("Newer"), join(this.chain.nameOf(id)));
+        assertEquals(new Resolution<>(Optional.of("Newer"), SourceId.CACHE), join(this.chain.resolveName(id)));
     }
 }
