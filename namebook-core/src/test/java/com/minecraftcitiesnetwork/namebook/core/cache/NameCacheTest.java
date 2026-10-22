@@ -76,4 +76,18 @@ class NameCacheTest {
         assertTrue(small.nameOf(b).isPresent());
         assertTrue(small.nameOf(c).isPresent());
     }
+
+    @Test
+    void putUuid_doesNotSetName() {
+        UUID id = UUID.randomUUID();
+        this.cache.put(id, "Steve");
+        this.cache.putUuid("steve", id);
+        assertEquals(Optional.of(Optional.of("Steve")), this.cache.nameOf(id));
+        assertEquals(Optional.of(Optional.of(id)), this.cache.uuidOf("STEVE"));
+
+        UUID other = UUID.randomUUID();
+        this.cache.putUuid("alex", other);
+        assertTrue(this.cache.nameOf(other).isEmpty());
+        assertEquals(Optional.of(Optional.of(other)), this.cache.uuidOf("Alex"));
+    }
 }
