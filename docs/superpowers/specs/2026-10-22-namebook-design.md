@@ -203,7 +203,7 @@ The database records only players this network has actually seen join.
 |---|---|---|---|
 | `/namebook lookup <name or uuid>` | `namebook.lookup` | op | Shows the other half and which source answered (cache, database, server, playerdb.co or Mojang). |
 | `/namebook import usercache` | `namebook.admin` | op | Reads the server's `usercache.json` and inserts every entry whose UUID and name are both absent from the table. Reports how many rows were added and how many were skipped. Never changes an existing row. |
-| `/namebook reload` | `namebook.admin` | op | Reloads `settings.yml` and clears the cache. |
+| `/namebook reload` | `namebook.admin` | op | Reloads `messages.yml` and clears the cache. Changes to `settings.yml` take effect after a restart. |
 
 ## Configuration
 

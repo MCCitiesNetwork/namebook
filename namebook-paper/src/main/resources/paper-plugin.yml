@@ -10,5 +10,5 @@ permissions:
     description: Look up a player's name or UUID with /namebook lookup.
     default: op
   namebook.admin:
-    description: Import the server's user cache and reload Namebook.
+    description: Import the server's user cache, and reload messages.yml and clear the cache (settings.yml needs a restart).
     default: op

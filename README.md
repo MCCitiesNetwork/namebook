@@ -74,7 +74,7 @@ and updated automatically.
 |---|---|---|---|
 | `/namebook lookup <name or uuid>` | `namebook.lookup` | op | Shows the other half and which source answered. |
 | `/namebook import usercache` | `namebook.admin` | op | Adds players from the server's `usercache.json` that are not in the database yet. Never changes an existing row. |
-| `/namebook reload` | `namebook.admin` | op | Reloads `settings.yml` and clears the cache. |
+| `/namebook reload` | `namebook.admin` | op | Reloads `messages.yml` and clears the cache. Changes to `settings.yml` take effect after a restart. |
 
 Run `/namebook import usercache` once after installing, so players who joined before Namebook are known.
 
