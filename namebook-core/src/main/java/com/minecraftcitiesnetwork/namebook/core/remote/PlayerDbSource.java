@@ -76,9 +76,9 @@ public final class PlayerDbSource implements NameSource {
                 if (username == null || xuidText == null) {
                     return Optional.<UUID>empty();
                 }
-                // Underscores are dropped on both sides because a gamertag cannot tell them from spaces.
-                if (!this.rules.gamertagQuery(this.rules.bedrockName(username))
-                        .equalsIgnoreCase(query)) {
+                // The answer must build exactly the requested name; only case may differ. The query
+                // drops underscores, so without this check ".Foo_Bar" would accept "FooBar".
+                if (!this.rules.bedrockName(username).equalsIgnoreCase(name)) {
                     return Optional.<UUID>empty();
                 }
                 try {

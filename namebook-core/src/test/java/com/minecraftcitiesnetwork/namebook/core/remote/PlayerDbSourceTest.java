@@ -101,6 +101,18 @@ class PlayerDbSourceTest {
     }
 
     @Test
+    void bedrock_byName_differentUnderscoresIsUnknown() {
+        this.server.reply(200, found("FooBar", "2584878536129841"));
+        assertEquals(Optional.empty(), this.source().uuidOf(".Foo_Bar").join());
+    }
+
+    @Test
+    void bedrock_byName_caseDifferenceMatches() {
+        this.server.reply(200, NELSON_BODY);
+        assertEquals(Optional.of(NELSON), this.source().uuidOf(".major_nelson").join());
+    }
+
+    @Test
     void unknown_onNotFound() {
         this.server.reply(200, "{\"success\":false,\"code\":\"minecraft.invalid_username\"}");
         assertEquals(Optional.empty(), this.source().uuidOf("Nobody").join());
