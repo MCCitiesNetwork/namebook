@@ -30,11 +30,21 @@ class MigrationTest extends AbstractDatabaseTest {
     }
 
     @Test
+    void migrate_createsUniqueKeyOnName() throws SQLException {
+        assertEquals(1, count("SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE()"
+                + " AND table_name = 'namebook_players' AND index_name = 'uq_name' AND non_unique = 0"
+                + " AND column_name = 'name'"));
+        assertEquals(1, count("SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE()"
+                + " AND table_name = 'namebook_players' AND index_name = 'PRIMARY'"
+                + " AND column_name = 'player_uuid'"));
+    }
+
+    @Test
     void migrate_isIdempotent() throws SQLException {
         int before = count("SELECT COUNT(*) FROM namebook_schema_version");
         try (NamebookDatabase second = NamebookDatabase.open(settings(), Logger.getLogger("test"))) {
-            assertTrue(second.dataSource() != null);
+            // Opening again must neither fail nor record another migration.
+            assertEquals(before, count("SELECT COUNT(*) FROM namebook_schema_version"));
         }
-        assertEquals(before, count("SELECT COUNT(*) FROM namebook_schema_version"));
     }
 }
