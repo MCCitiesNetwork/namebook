@@ -270,10 +270,8 @@ public final class LookupChain implements Namebook {
         name.ifPresentOrElse(found -> this.cache.put(id, found), () -> this.cache.putMissingName(id));
     }
 
-    // Sources answer a name lookup with a UUID only, so the cache gets the caller's spelling;
-    // a later nameOf for that UUID shows that spelling until the entry expires.
     private void rememberUuid(String name, Optional<UUID> id) {
-        id.ifPresentOrElse(found -> this.cache.put(found, name), () -> this.cache.putMissingUuid(name));
+        id.ifPresentOrElse(found -> this.cache.putUuid(name, found), () -> this.cache.putMissingUuid(name));
     }
 
     private static <V> Resolution<V> fromCache(Optional<V> cached) {

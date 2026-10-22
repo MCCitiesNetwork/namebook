@@ -337,4 +337,17 @@ class LookupChainTest {
         verify(this.store, never()).uuidOf(any());
         assertTrue(this.callLog.isEmpty());
     }
+
+    @Test
+    void uuidLookup_doesNotChangeCachedCapitalisation() {
+        UUID id = UUID.randomUUID();
+        this.server.knows(id, "Steve");
+        when(this.store.nameOf(id)).thenReturn(Optional.of("Steve"));
+
+        assertEquals(Optional.of(id), join(this.chain.uuidOf("steve")));
+
+        // The lookup cached no name, so the database is asked and its spelling wins.
+        assertEquals(Optional.of("Steve"), join(this.chain.nameOf(id)));
+        verify(this.store).nameOf(id);
+    }
 }

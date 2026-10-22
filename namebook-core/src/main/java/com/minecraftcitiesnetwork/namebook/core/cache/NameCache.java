@@ -67,6 +67,24 @@ public final class NameCache {
         this.evict();
     }
 
+    /**
+     * Caches only name to UUID. A lookup by name carries the caller's spelling, which must not
+     * replace the player's own capitalisation in the UUID to name direction.
+     */
+    public synchronized void putUuid(String name, UUID id) {
+        String key = NameRules.key(name);
+        // The newest owner of a name wins; drop the previous owner's cached name if it is this one.
+        Entry<UUID> previousOwner = this.uuids.remove(key);
+        if (previousOwner != null && previousOwner.value() != null && !previousOwner.value().equals(id)) {
+            Entry<String> theirName = this.names.get(previousOwner.value());
+            if (theirName != null && theirName.value() != null && NameRules.key(theirName.value()).equals(key)) {
+                this.names.remove(previousOwner.value());
+            }
+        }
+        this.uuids.put(key, new Entry<>(id, this.clock.instant().plus(this.ttl)));
+        this.evict();
+    }
+
     public synchronized void putMissingName(UUID id) {
         this.names.remove(id);
         this.names.put(id, new Entry<>(null, this.clock.instant().plus(this.missTtl)));
