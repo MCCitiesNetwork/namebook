@@ -1,0 +1,23 @@
+# Namebook messages, written in MiniMessage (https://docs.advntr.dev/minimessage/format.html).
+#
+# Placeholders such as <query>, <answer> and <source> are filled in by the plugin; keep them
+# where they are. Keys that are missing from this file are added back with their default text
+# when the plugin loads.
+
+lookup:
+  # <query> is what was asked, <answer> the name or UUID found, <source> where it came from.
+  found: '<gray>[<gold>Namebook</gold>]</gray> <aqua><query></aqua> <gray>is</gray> <green><answer></green> <dark_gray>(<source>)</dark_gray>'
+  unknown: '<gray>[<gold>Namebook</gold>]</gray> <red>No player is known for that name or UUID.'
+  invalid: '<gray>[<gold>Namebook</gold>]</gray> <red>That is not a valid player name or UUID.'
+
+import:
+  # <added> names were added, <skipped> were already known.
+  done: '<gray>[<gold>Namebook</gold>]</gray> <green>Import finished: <added> added, <skipped> already known.'
+  # <reason> says what went wrong.
+  failed: '<gray>[<gold>Namebook</gold>]</gray> <red>Import failed: <reason>'
+
+reload:
+  done: '<gray>[<gold>Namebook</gold>]</gray> <green>Configuration reloaded.'
+
+errors:
+  database-unavailable: '<gray>[<gold>Namebook</gold>]</gray> <red>The database is not reachable right now.'

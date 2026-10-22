@@ -1,0 +1,13 @@
+# Namebook database connection.
+#
+# Namebook remembers every name a player joins with in a MariaDB database and does not start
+# until this is filled in. Create an empty database and a user with full rights on it first.
+# Point every server on your network at the same database.
+#
+# url: the server and database, without the "jdbc:" prefix, for example
+#   mariadb://host:3306/namebook
+url: ''
+# username: the database user.
+username: ''
+# password: the database user's password.
+password: ''
