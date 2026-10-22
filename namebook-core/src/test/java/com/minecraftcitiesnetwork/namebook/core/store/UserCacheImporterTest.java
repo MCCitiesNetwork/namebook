@@ -33,7 +33,7 @@ class UserCacheImporterTest extends AbstractDatabaseTest {
     @BeforeEach
     void createImporter() {
         this.store = new PlayerStore(database);
-        this.importer = new UserCacheImporter(this.store, new NameRules("."));
+        this.importer = new UserCacheImporter(this.store, new NameRules(".", true));
     }
 
     private Path write(String json) throws IOException {

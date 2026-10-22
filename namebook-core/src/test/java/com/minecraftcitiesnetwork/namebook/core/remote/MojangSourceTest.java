@@ -36,7 +36,7 @@ class MojangSourceTest {
 
     private MojangSource source(int perMinute, Duration timeout) {
         return new MojangSource(this.http, this.server.uri(), this.server.uri(), timeout,
-                new RateLimiter(Clock.systemUTC(), perMinute), "Namebook/test", new NameRules("."));
+                new RateLimiter(Clock.systemUTC(), perMinute), "Namebook/test", new NameRules(".", true));
     }
 
     private MojangSource source() {

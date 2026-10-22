@@ -43,7 +43,7 @@ class NamebookCommandTest {
     void setUp() throws Exception {
         this.messages = new ConfigLoader(this.dir, ConfigLoader.class.getClassLoader(), Logger.getLogger("test"))
                 .loadMessages();
-        this.command = new NamebookCommand(this.chain, new NameRules("."), mock(UserCacheImporter.class),
+        this.command = new NamebookCommand(this.chain, new NameRules(".", true), mock(UserCacheImporter.class),
                 this.dir.resolve("usercache.json"), Runnable::run, () -> CompletableFuture.completedFuture(null),
                 () -> this.messages, Logger.getLogger("test"));
     }

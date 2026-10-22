@@ -23,7 +23,7 @@ class PlayerDbSourceTest {
     private static final UUID NELSON = UUID.fromString("00000000-0000-0000-0009-2eeeeeeefd31");
     private static final String NELSON_BODY = found("Major Nelson", "2584878536129841");
 
-    private final NameRules rules = new NameRules(".");
+    private final NameRules rules = new NameRules(".", true);
     private final HttpClient http = HttpClient.newHttpClient();
     private StubServer server;
 

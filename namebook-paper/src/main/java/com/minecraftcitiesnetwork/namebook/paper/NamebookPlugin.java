@@ -99,7 +99,7 @@ public final class NamebookPlugin extends JavaPlugin {
                 current.bedrock().prefix(), getLogger());
         getLogger().info("Bedrock name prefix is '" + bedrock.prefix() + "', "
                 + (bedrock.fromFloodgate() ? "read from Floodgate's config.yml" : "from settings.yml"));
-        NameRules rules = new NameRules(bedrock.prefix());
+        NameRules rules = new NameRules(bedrock.prefix(), true);
 
         // Threads need the plugin class loader so the JDBC driver and MyBatis resources resolve.
         ClassLoader pluginClassLoader = getClassLoader();

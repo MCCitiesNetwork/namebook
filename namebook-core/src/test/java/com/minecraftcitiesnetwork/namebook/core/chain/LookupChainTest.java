@@ -100,7 +100,7 @@ class LookupChainTest {
 
     private final List<SourceId> callLog = new ArrayList<>();
     private final NameCache cache = new NameCache(Clock.systemUTC(), Duration.ofMinutes(10), Duration.ofMinutes(1), 1000);
-    private final NameRules rules = new NameRules(".");
+    private final NameRules rules = new NameRules(".", true);
     private ExecutorService chainExecutor;
     private ExecutorService databaseExecutor;
     private PlayerStore store;
