@@ -3,6 +3,7 @@ package com.minecraftcitiesnetwork.namebook.core.store;
 import com.minecraftcitiesnetwork.namebook.core.store.mapper.PlayerMapper;
 import org.apache.ibatis.datasource.pooled.PooledDataSource;
 import org.apache.ibatis.mapping.Environment;
+import org.apache.ibatis.plugin.Interceptor;
 import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.SqlSession;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -80,6 +81,14 @@ public final class NamebookDatabase implements AutoCloseable {
     /** Opens a session with auto-commit off; the caller commits and closes it. */
     public @NotNull SqlSession openSession() {
         return this.sessionFactory.openSession();
+    }
+
+    /**
+     * Lets tests observe the statements MyBatis sends. MyBatis applies interceptors to each new
+     * session, so one added after the factory is built still takes effect.
+     */
+    void addInterceptor(@NotNull Interceptor interceptor) {
+        this.sessionFactory.getConfiguration().addInterceptor(interceptor);
     }
 
     public @NotNull DataSource dataSource() {

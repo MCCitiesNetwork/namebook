@@ -17,6 +17,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -37,15 +38,6 @@ class PlayerStoreTest extends AbstractDatabaseTest {
              ResultSet rs = s.executeQuery("SELECT COUNT(*) FROM namebook_players WHERE name = '" + name + "'")) {
             rs.next();
             return rs.getInt(1);
-        }
-    }
-
-    private static long selectCount() throws SQLException {
-        try (Connection c = DriverManager.getConnection(CONTAINER.getJdbcUrl(), "root", "rootpass");
-             Statement s = c.createStatement();
-             ResultSet rs = s.executeQuery("SHOW GLOBAL STATUS LIKE 'Com_select'")) {
-            rs.next();
-            return rs.getLong(2);
         }
     }
 
@@ -128,14 +120,17 @@ class PlayerStoreTest extends AbstractDatabaseTest {
         UUID c = UUID.randomUUID();
         this.store.record(a, "One");
         this.store.record(b, "Two");
-        long before = selectCount();
-        Map<UUID, String> names = this.store.namesOf(List.of(a, b, c));
-        assertEquals(1, selectCount() - before);
-        assertEquals(Map.of(a, "One", b, "Two"), names);
-        before = selectCount();
-        Map<String, UUID> ids = this.store.uuidsOf(List.of("ONE", "two", "missing"));
-        assertEquals(1, selectCount() - before);
-        assertEquals(Map.of("one", a, "two", b), ids);
+        QueryCounter counter = new QueryCounter();
+        try (NamebookDatabase counted = NamebookDatabase.open(settings(), Logger.getLogger("test"))) {
+            counted.addInterceptor(counter);
+            PlayerStore countedStore = new PlayerStore(counted);
+            Map<UUID, String> names = countedStore.namesOf(List.of(a, b, c));
+            assertEquals(1, counter.count());
+            assertEquals(Map.of(a, "One", b, "Two"), names);
+            Map<String, UUID> ids = countedStore.uuidsOf(List.of("ONE", "two", "missing"));
+            assertEquals(2, counter.count());
+            assertEquals(Map.of("one", a, "two", b), ids);
+        }
     }
 
     @Test
