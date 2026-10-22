@@ -14,15 +14,18 @@ import java.time.Duration;
 public record Settings(Bedrock bedrock, Cache cache, Remote playerdb, Remote mojang) {
 
     public Settings {
-        bedrock = bedrock == null ? new Bedrock(null) : bedrock;
+        bedrock = bedrock == null ? new Bedrock(null, true) : bedrock;
         cache = cache == null ? new Cache(null, null, 0) : cache;
         playerdb = playerdb == null ? new Remote(true, null, 0) : playerdb;
         mojang = mojang == null ? new Remote(true, null, 0) : mojang;
     }
 
-    /** How Bedrock (Floodgate) names are told apart from Java names. An empty prefix is allowed. */
+    /**
+     * How Floodgate builds Bedrock names, so Namebook can tell them from Java names. An empty
+     * prefix is allowed. Floodgate's own config.yml overrides both values when it exists.
+     */
     @ConfigSerializable
-    public record Bedrock(String prefix) {
+    public record Bedrock(String prefix, @Setting("replace-spaces") boolean replaceSpaces) {
         public Bedrock {
             // Only a missing key falls back; an explicit empty prefix is a valid choice.
             prefix = prefix == null ? "." : prefix;

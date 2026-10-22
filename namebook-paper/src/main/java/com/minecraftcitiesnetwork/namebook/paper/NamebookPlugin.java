@@ -70,8 +70,8 @@ public final class NamebookPlugin extends JavaPlugin {
     private @Nullable NamebookDatabase storage;
     private @Nullable NameCache cache;
 
-    /** The Bedrock prefix in use and whether it came from Floodgate's own configuration. */
-    public record BedrockPrefix(@NotNull String prefix, boolean fromFloodgate) {
+    /** How Bedrock names are built and whether that came from Floodgate's own configuration. */
+    public record BedrockNames(@NotNull String prefix, boolean replaceSpaces, boolean fromFloodgate) {
     }
 
     @Override
@@ -95,11 +95,13 @@ public final class NamebookPlugin extends JavaPlugin {
         }
         Settings current = this.settings.get();
 
-        BedrockPrefix bedrock = resolveBedrockPrefix(getDataFolder().toPath().getParent(),
-                current.bedrock().prefix(), getLogger());
-        getLogger().info("Bedrock name prefix is '" + bedrock.prefix() + "', "
+        BedrockNames bedrock = resolveBedrockNames(getDataFolder().toPath().getParent(),
+                current.bedrock(), getLogger());
+        getLogger().info("Bedrock name prefix is '" + bedrock.prefix() + "', spaces "
+                + (bedrock.replaceSpaces() ? "replaced by _" : "kept") + ", "
                 + (bedrock.fromFloodgate() ? "read from Floodgate's config.yml" : "from settings.yml"));
-        NameRules rules = new NameRules(bedrock.prefix(), true);
+        NameRules rules = new NameRules(bedrock.prefix(), bedrock.replaceSpaces());
+        warnIfAmbiguous(rules, getLogger());
 
         // Threads need the plugin class loader so the JDBC driver and MyBatis resources resolve.
         ClassLoader pluginClassLoader = getClassLoader();
@@ -233,30 +235,45 @@ public final class NamebookPlugin extends JavaPlugin {
     }
 
     /**
-     * Floodgate's own {@code username-prefix} wins when Floodgate is installed, so Namebook and
-     * Floodgate can never disagree about which names are Bedrock names.
+     * Floodgate's own {@code username-prefix} and {@code replace-spaces} win when Floodgate is
+     * installed, so Namebook and Floodgate can never disagree about a Bedrock player's name.
      *
      * @param pluginsFolder the server's plugins folder
-     * @param configured    {@code bedrock.prefix} from settings.yml
+     * @param configured    {@code bedrock} from settings.yml
      */
-    static @NotNull BedrockPrefix resolveBedrockPrefix(@NotNull Path pluginsFolder, @NotNull String configured,
-                                                       @NotNull Logger log) {
+    static @NotNull BedrockNames resolveBedrockNames(@NotNull Path pluginsFolder,
+                                                     @NotNull Settings.Bedrock configured, @NotNull Logger log) {
+        BedrockNames fallback = new BedrockNames(configured.prefix(), configured.replaceSpaces(), false);
         Path floodgateConfig = pluginsFolder.resolve("floodgate").resolve("config.yml");
         if (!Files.isRegularFile(floodgateConfig)) {
-            return new BedrockPrefix(configured, false);
+            return fallback;
         }
         try {
             ConfigurationNode root = YamlConfigurationLoader.builder().path(floodgateConfig).build().load();
             String prefix = root.node("username-prefix").getString();
-            if (prefix != null) {
-                return new BedrockPrefix(prefix, true);
+            if (prefix == null) {
+                log.warning("Floodgate's config.yml has no username-prefix; using bedrock from settings.yml.");
+                return fallback;
             }
-            log.warning("Floodgate's config.yml has no username-prefix; using bedrock.prefix from settings.yml.");
+            ConfigurationNode replaceSpaces = root.node("replace-spaces");
+            boolean replace = replaceSpaces.virtual()
+                    ? configured.replaceSpaces()
+                    : replaceSpaces.getBoolean(configured.replaceSpaces());
+            return new BedrockNames(prefix, replace, true);
         } catch (ConfigurateException ex) {
             log.warning("Could not read Floodgate's config.yml (" + ex.getMessage()
-                    + "); using bedrock.prefix from settings.yml.");
+                    + "); using bedrock from settings.yml.");
         }
-        return new BedrockPrefix(configured, false);
+        return fallback;
+    }
+
+    /** Floodgate itself advises against such a prefix, because Java names can then look like Bedrock names. */
+    static void warnIfAmbiguous(@NotNull NameRules rules, @NotNull Logger log) {
+        if (rules.prefixIsAmbiguous()) {
+            log.warning("The Bedrock prefix '" + rules.bedrockPrefix() + "' contains letters, digits or _, so "
+                    + "some Java names look like Bedrock names and are looked up as Bedrock players. "
+                    + "Use a prefix such as '.' in Floodgate's config.yml.");
+        }
     }
 
     private static void shutdown(@Nullable ExecutorService service, Logger log) {

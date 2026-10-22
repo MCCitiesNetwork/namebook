@@ -7,11 +7,15 @@
 # Missing keys are added back, with their default value, each time the plugin loads. A pristine
 # copy of this file is kept in defaults/default-settings.yml for comparison.
 
-# Bedrock players join through Floodgate with a prefix in front of their name.
+# Bedrock players join through Floodgate with a prefix in front of their name. When Floodgate
+# is installed, its own username-prefix and replace-spaces are used instead of these two.
 bedrock:
   # The prefix Floodgate puts in front of Bedrock names. Leave it empty ('') if Floodgate
-  # is configured without a prefix.
+  # is configured without a prefix. A prefix with letters, digits or _ makes Bedrock names
+  # look like Java names; Namebook warns about it at startup.
   prefix: '.'
+  # Whether Floodgate replaces spaces in gamertags with _ (Floodgate's replace-spaces).
+  replace-spaces: true
 
 # The in-memory cache in front of the database and the remote sources. Each server has its own.
 cache:

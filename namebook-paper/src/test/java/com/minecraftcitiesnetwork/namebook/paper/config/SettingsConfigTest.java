@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SettingsConfigTest {
@@ -20,6 +21,7 @@ class SettingsConfigTest {
     void settings_bundledLoadsDefaults() throws Exception {
         Settings s = ConfigTestSupport.loader(this.dir).load("settings.yml", Settings.class);
         assertEquals(".", s.bedrock().prefix());
+        assertTrue(s.bedrock().replaceSpaces());
         assertEquals(Duration.ofMinutes(10), s.cache().ttl());
         assertEquals(Duration.ofMinutes(1), s.cache().missTtl());
         assertEquals(10000, s.cache().maxEntries());
@@ -46,6 +48,14 @@ class SettingsConfigTest {
         Files.writeString(this.dir.resolve("settings.yml"), "bedrock:\n  prefix: ''\n");
         Settings s = ConfigTestSupport.loader(this.dir).load("settings.yml", Settings.class);
         assertEquals("", s.bedrock().prefix());
+    }
+
+    @Test
+    void settings_replaceSpacesCanBeTurnedOff() throws Exception {
+        Files.writeString(this.dir.resolve("settings.yml"), "bedrock:\n  replace-spaces: false\n");
+        Settings s = ConfigTestSupport.loader(this.dir).load("settings.yml", Settings.class);
+        assertEquals(".", s.bedrock().prefix());
+        assertFalse(s.bedrock().replaceSpaces());
     }
 
     @Test

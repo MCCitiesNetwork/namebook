@@ -214,7 +214,7 @@ copy is written to `defaults/`, as Pollster does.
 | File | Contents |
 |---|---|
 | `database.yml` | `url` (without `jdbc:`), `username`, `password`. Ships blank; the plugin disables itself with an explanation when `url` is empty. |
-| `settings.yml` | `bedrock.prefix`; `cache.ttl`, `cache.miss-ttl`, `cache.max-entries`; `playerdb.enabled`, `playerdb.timeout`, `playerdb.max-per-minute`; `mojang.enabled`, `mojang.timeout`, `mojang.max-per-minute`. |
+| `settings.yml` | `bedrock.prefix`, `bedrock.replace-spaces`; `cache.ttl`, `cache.miss-ttl`, `cache.max-entries`; `playerdb.enabled`, `playerdb.timeout`, `playerdb.max-per-minute`; `mojang.enabled`, `mojang.timeout`, `mojang.max-per-minute`. |
 | `messages.yml` | Command output, MiniMessage. Player-supplied text inserted unparsed. |
 
 ## Several servers

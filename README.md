@@ -22,9 +22,14 @@ Java and Bedrock (Geyser/Floodgate) players are both supported.
 
 - A Java name is 1 to 16 letters, digits or underscores. Names are compared without regard to case,
   and are stored and shown with the player's own capitalisation.
-- A Bedrock name is the Bedrock prefix followed by the player's gamertag, with spaces written as `_`.
+- A Bedrock name is built as Floodgate builds it: the Bedrock prefix, then the player's gamertag cut so
+  the whole name is at most 16 characters, with spaces written as `_` (Floodgate's `replace-spaces`).
   The prefix is `bedrock.prefix` in `settings.yml` (default `.`). When Floodgate is installed,
-  Namebook uses Floodgate's `username-prefix` instead, so the two always agree.
+  Namebook uses Floodgate's `username-prefix` and `replace-spaces` instead, so the two always agree.
+- A Bedrock name of exactly 16 characters may hold only part of the gamertag, so it is never looked up
+  on playerdb.co by name. Such players are found once they have joined.
+- Namebook warns at startup when the prefix contains letters, digits or `_`, because Java names can then
+  look like Bedrock names.
 - Players who linked a Java account to Floodgate join as ordinary Java players.
 - Names that fit neither form are never looked up and never stored.
 
@@ -53,6 +58,7 @@ All files are in `plugins/Namebook/`. A reference copy of each default is writte
   `username` and `password`. It ships blank.
 - `settings.yml`:
   - `bedrock.prefix`: the Bedrock name prefix (default `.`; may be empty).
+  - `bedrock.replace-spaces`: whether Floodgate writes spaces in gamertags as `_` (default true).
   - `cache.ttl` (10 minutes), `cache.miss-ttl` (1 minute) and `cache.max-entries` (10 000).
   - `playerdb.enabled`, `playerdb.timeout` (3 seconds) and `playerdb.max-per-minute` (30).
   - `mojang.enabled`, `mojang.timeout` (3 seconds) and `mojang.max-per-minute` (30).
