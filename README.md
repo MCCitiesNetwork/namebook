@@ -39,7 +39,9 @@ Namebook tries these sources in order and stops at the first answer:
 
 1. **Cache.** In memory on this server. Unknown players are cached briefly too.
 2. **Database.** Every player who has joined a server using this database.
-3. **Server user cache.** Paper's own list of recent players. It is only read, never refreshed.
+3. **Server profile caches.** Paper's own caches, only read, never refreshed. A UUID is looked up in the
+   server's user cache. A name is looked up only among recently completed profiles, with its exact
+   spelling, so run `/namebook import usercache` to make the rest of the user cache findable by name.
 4. **playerdb.co.** Java and Bedrock.
 5. **Mojang.** Java only. Used when playerdb.co is off or has no answer.
 
