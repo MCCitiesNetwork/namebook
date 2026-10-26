@@ -10,7 +10,7 @@ group = "com.minecraftcitiesnetwork"
 // Deliberately not named "version": Gradle already defines a project property by that
 // name, so -Pversion behaves differently depending on whether a build script assigns
 // it. A distinct name has no such ambiguity.
-version = (findProperty("releaseVersion") ?: "1.0.0-SNAPSHOT").toString()
+version = (findProperty("releaseVersion") ?: "1.0.1-SNAPSHOT").toString()
 
 val targetJavaVersion = 25
 

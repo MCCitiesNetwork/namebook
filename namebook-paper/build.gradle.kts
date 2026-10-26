@@ -2,7 +2,8 @@ plugins {
     `java-library`
     `namebook-conventions`
     id("xyz.jpenilla.run-paper") version "3.0.2"
-    id("com.gradleup.shadow") version "9.3.1"
+    id("com.gradleup.shadow")
+    `namebook-shared-relocation`
 }
 
 dependencies {
@@ -10,8 +11,8 @@ dependencies {
     compileOnly("io.papermc.paper:paper-api:26.3.build.211-stable")
     implementation("org.incendo:cloud-paper:2.0.1")
     implementation("org.spongepowered:configurate-yaml:4.2.0")
-    // Shared helpers (MessageContainer, ComponentSerializer, SchemaMigrator). Deliberately NOT
-    // relocated, matching the other plugins that share it.
+    // Shared helpers (MessageContainer, ComponentSerializer, SchemaMigrator). Shaded and relocated
+    // like any bundled library; see namebook-shared-relocation.
     implementation("com.minecraftcitiesnetwork:plugin-infrastructure:1.0.0-SNAPSHOT")
 
     testImplementation("io.papermc.paper:paper-api:26.3.build.211-stable")
@@ -124,21 +125,7 @@ tasks {
     }
 
     shadowJar {
-        // com.minecraftcitiesnetwork.namebook.api is deliberately NOT relocated: other plugins
-        // compile against those names and load them from this jar at runtime.
-        val base = "com.minecraftcitiesnetwork.namebook.libraries"
-        relocate("org.mariadb", "${base}.org.mariadb")
-        relocate("org.mybatis", "${base}.org.mybatis")
-        relocate("org.apache.ibatis", "${base}.org.apache.ibatis")
-        relocate("org.spongepowered", "${base}.org.spongepowered")
-        relocate("org.yaml", "${base}.org.yaml")
-        relocate("io.leangen.geantyref", "${base}.io.leangen.geantyref")
-        relocate("org.jetbrains.annotations", "${base}.org.jetbrains.annotations")
-        relocate("org.intellij.lang", "${base}.org.intellij.lang")
-        relocate("org.jspecify", "${base}.org.jspecify")
-        relocate("net.kyori.option", "${base}.net.kyori.option")
-        relocate("org.incendo.cloud", "${base}.org.incendo.cloud")
-        relocate("com.fasterxml.jackson", "${base}.com.fasterxml.jackson")
+        // Relocations live in namebook-shared-relocation.
         mergeServiceFiles()
     }
 
